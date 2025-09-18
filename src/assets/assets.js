@@ -1,29 +1,27 @@
-import arrow_icon from './arrow_icon.svg'
-import lock_icon from './lock_icon.svg'
-import logo from './logo.svg'
-import mail_icon from './mail_icon.svg'
-import person_icon from './person_icon.svg'
-import hand_wave from './hand_wave.png'
-import header_img from './header_img.png'
-import p1 from './p1.png'
-import p2 from './p2.png'
-import p3 from './p3.png'
-import p4 from './p4.png'
-import p5 from './p5.png'
-import me from './me.png'
+import logo from './logo.png'
+import add_icon from './add_icon.png'
+import order_icon from './order_icon.png'
+import upload_area from './upload_area.png'
+import parcel_icon from './parcel_icon.svg'
+import menu from './menu_icon.png'
+import dropdown from './dropdown_icon.png'
+import cross_icon from './cross_icon.png'
+import list_icon from './list_icon.png'
+import dash_icon from './dash_icon.png'
+import hero from './hero.png'
 
-export const assets = {
-    arrow_icon,
-    lock_icon,
+const assets = {
     logo,
-    mail_icon,
-    person_icon,
-    hand_wave,
-    header_img, 
-    p3, 
-    p4, 
-    p5,
-    p1,
-    p2,
-    me
+    add_icon,
+    order_icon,
+    upload_area,
+    parcel_icon,
+    menu,
+    dropdown,
+    cross_icon,
+    list_icon,
+    dash_icon,
+    hero,
 }
+
+export default assets;

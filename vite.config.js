@@ -24,13 +24,13 @@ export default defineConfig({
 
   // Server configuration
   server: {
-    port: 3000,
+    port: 5173,
     strictPort: true, // Exit if port is in use
   },
 
   // Preview configuration
   preview: {
-    port: 3000,
+    port: 5173,
     strictPort: true,
   },
 

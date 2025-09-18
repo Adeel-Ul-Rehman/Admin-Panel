@@ -1,88 +1,75 @@
 import React, { useContext } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AppContent } from "./context/AppContext";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import EmailVerify from "./pages/EmailVerify";
-import ResetPassword from "./pages/ResetPassword";
-import ManageAccount from "./pages/ManageAccount";
-import History from "./pages/History";
-import DailyRecords from "./pages/DailyRecords";
-import Dashboard from "./pages/Dashboard";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import Complain from "./pages/Complain";
-import About from "./pages/About";
-import Footer from "./components/Footer";
+import Sidebar from "./components/Sidebar";
+import Add from "./pages/Add";
+import List from "./pages/List";
+import Orders from "./pages/Orders";
+import Login from "./components/Login";
+import ResetPassword from "./components/ResetPassword";
+import Profile from "./pages/Profile";
+import Dashboard from "./pages/Dashboard";
+import EditProduct from "./pages/EditProduct";
+import BulkProductUpload from "./pages/BulkProductUpload";
+import ProductDetails from "./pages/ProductDetails";
+import HeroImages from "./pages/HeroImages";
+import { AppProvider, AppContext } from "./context/AppContext";
 
-const ProtectedRoute = ({ children }) => {
-  const { isLoggedin, loadingUser } = useContext(AppContent);
-  const location = useLocation();
+// Define backendURL for API calls
+export const backendURL = "https://hadi-books-store-backend-4.onrender.com";
 
-  if (loadingUser) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
-      </div>
-    );
-  }
+const AppContent = () => {
+  const { admin } = useContext(AppContext);
 
-  if (!isLoggedin) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+      {!admin.token ? (
+        <Routes>
+          <Route path="/admin" element={<Login />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<Navigate to="/admin" />} />
+        </Routes>
+      ) : (
+        <>
+          <div className="fixed top-0 left-0 w-full z-50">
+            <Navbar />
+          </div>
+          <div className="flex flex-1 pt-16">
+            {" "}
+            {/* Add padding-top to account for fixed navbar */}
+            <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] z-40">
+              {" "}
+              {/* Position sidebar below navbar */}
+              <Sidebar />
+            </div>
+            <div className="flex-1 ml-0 md:ml-64 p-4 md:p-6 overflow-auto">
+              {" "}
+              {/* Add margin for sidebar and make content scrollable */}
+              <Routes>
+                <Route path="/admin/dashboard" element={<Dashboard />} />
+                <Route path="/admin/add" element={<Add />} />
+                <Route path="/admin/list" element={<List />} />
+                <Route path="/admin/orders" element={<Orders />} />
+                <Route path="/admin/hero-images" element={<HeroImages />} />
+                <Route path="/bulk-upload" element={<BulkProductUpload />} />
+                <Route path="/admin/profile" element={<Profile />} />
+                <Route path="/admin/edit/:id" element={<EditProduct />} />
+                <Route path="/admin/product/:id" element={<ProductDetails />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" />} />
+              </Routes>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 const App = () => {
-  const { theme } = useContext(AppContent);
-
   return (
-    <div className={`flex flex-col min-h-screen ${theme === 'day' ? 'bg-day' : 'bg-night text-night-text'}`}>
-      <ToastContainer 
-        position="top-right"
-        autoClose={3000}
-        theme={theme === 'day' ? 'light' : 'dark'}
-      />
-      <Navbar />
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/email-verify" element={<EmailVerify />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          <Route path="/manage-account" element={
-            <ProtectedRoute>
-              <ManageAccount />
-            </ProtectedRoute>
-          } />
-          <Route path="/complain" element={
-            <ProtectedRoute>
-              <Complain />
-            </ProtectedRoute>
-          } />
-          <Route path="/history" element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          } />
-          <Route path="/daily-records" element={
-            <ProtectedRoute>
-              <DailyRecords />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 };
 

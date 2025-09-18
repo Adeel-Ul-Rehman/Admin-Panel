@@ -1,191 +1,166 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppContent } from "../context/AppContext";
-import axios from "axios";
-import { toast } from "react-toastify";
-import { assets } from "../assets/assets";
+import assets from "../assets/assets";
+import { AppContext } from "../context/AppContext";
+import { backendURL } from "../App";
 
 const Navbar = () => {
+  const { admin, updateAdmin } = useContext(AppContext);
+  const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const navigate = useNavigate();
-  const { backendUrl, userData, isLoggedin, setIsLoggedin, setUserData, theme } =
-    useContext(AppContent);
-
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef(null);
 
   const handleLogout = async () => {
+    setLogoutLoading(true);
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/logout`,
-        {},
-        { withCredentials: true }
-      );
-      if (data.success) {
-        setIsLoggedin(false);
-        setUserData(null);
-        toast.success(data.message);
-        navigate("/login");
+      const response = await fetch(`${backendURL}/api/user/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${admin.token}`
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          updateAdmin({
+            token: "",
+            id: null,
+            name: "",
+            email: "",
+            profilePicture: "",
+          });
+          navigate("/admin");
+        } else {
+          throw new Error(data.message || 'Logout failed');
+        }
       } else {
-        toast.error(data.message);
+        throw new Error(`HTTP error: ${response.status}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to logout");
+      console.error("Logout error:", error);
+      // Fallback: clear client state even if server logout fails
+      updateAdmin({
+        token: "",
+        id: null,
+        name: "",
+        email: "",
+        profilePicture: "",
+      });
+      navigate("/admin");
+    } finally {
+      setLogoutLoading(false);
+      setShowLogoutMenu(false);
     }
-    setShowDropdown(false);
-  };
-
-  const toggleDropdown = () => {
-    setShowDropdown((prev) => !prev);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const ThemeToggle = () => {
-    const { theme, toggleTheme } = useContext(AppContent);
-    
-    return (
-      <button
-        onClick={toggleTheme}
-        className={`relative w-10 h-5 sm:w-12 sm:h-6 rounded-full transition-all duration-300 focus:outline-none cursor-pointer ${
-          theme === 'day' 
-            ? 'bg-gray-200 ring-1 ring-gray-300' 
-            : 'bg-gray-700 ring-1 ring-gray-600'
-        }`}
-        aria-label="Toggle theme"
-      >
-        {/* Track background */}
-        <div className={`absolute inset-0 rounded-full ${
-          theme === 'day' ? 'bg-gray-200' : 'bg-gray-700'
-        }`}></div>
-        
-        {/* Thumb with icon */}
-        <div
-          className={`absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 rounded-full flex items-center justify-center ${
-            theme === 'day'
-              ? 'bg-yellow-400 left-0.5 w-4 h-4'
-              : 'bg-gray-300 left-6 sm:left-7 w-4 h-4'
-          }`}
-        >
-          {theme === 'day' ? (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-yellow-700">
-              <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-gray-700">
-              <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
-            </svg>
-          )}
-        </div>
-      </button>
-    );
   };
 
   return (
-    <nav className={`${theme === 'day' ? 'bg-day-card' : 'bg-night-card text-night-text'} shadow-xl py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center relative z-10 font-['Poppins',sans-serif]`}>
-      <div className="flex items-center gap-2 sm:gap-4 justify-center w-full md:w-auto">
-        <img
-          src="/logo.png"
-          onClick={() => navigate("/")}
-          alt="Logo"
-          className="w-8 h-8 sm:w-10 sm:h-10 cursor-pointer hover:scale-105 transition-transform duration-300"
-        />
-        
-        {/* Show title next to logo on mobile */}
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold italic tracking-tight text-[#E31837] animate-light-cycle whitespace-nowrap md:hidden">
-          𝐑𝐢𝐝𝐞𝐫 𝐄𝐱𝐩𝐞𝐧𝐬𝐞 𝐌𝐚𝐧𝐚𝐠𝐞𝐫
-        </h1>
+    <nav className="w-full bg-gradient-to-r from-black via-red-900 to-orange-800 shadow-lg px-4 md:px-6 py-3 flex items-center justify-between relative h-16">
+      {/* Left side - Logo */}
+      <div className="flex items-center space-x-3">
+        <div
+          className="bg-sky-100 p-1 md:p-2 rounded-lg shadow-md border border-sky-300 cursor-pointer"
+          onClick={() => navigate("/admin/dashboard")}
+        >
+          <img src={assets.logo} alt="Logo" className="h-6 md:h-8 w-auto" />
+        </div>
+        <div className="hidden sm:block">
+          <h1 className="text-sky-100 text-lg md:text-xl font-bold">
+            Hadi Books Store
+          </h1>
+          <p className="text-orange-300 text-xs font-semibold">
+            Admin Dashboard
+          </p>
+        </div>
       </div>
 
-      {/* Centered title for desktop */}
-      <h1 className="hidden md:block absolute left-1/2 transform -translate-x-1/2 text-xl lg:text-2xl font-bold italic tracking-tight text-[#E31837] animate-light-cycle whitespace-nowrap">
-        𝐑𝐢𝐝𝐞𝐫 𝐄𝐱𝐩𝐞𝐧𝐬𝐞 𝐌𝐚𝐧𝐚𝐠𝐞𝐫
-      </h1>
+      {/* Center - Title for mobile */}
+      <div className="sm:hidden">
+        <h1 className="text-sky-100 text-md font-bold">Admin Panel</h1>
+      </div>
 
-      <div className="relative flex items-center gap-3 sm:gap-4" ref={dropdownRef}>
-        <ThemeToggle />
-        {isLoggedin && userData ? (
-          <div className="relative">
-            <div
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#E31837] text-white flex items-center justify-center text-sm sm:text-base font-semibold cursor-pointer hover:scale-110 hover:shadow-lg transition-all duration-300 shadow-md overflow-hidden"
-              onClick={toggleDropdown}
-            >
-              {userData.profilePicture ? (
-                <img
-                  src={userData.profilePicture}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : userData.name ? (
-                userData.name[0].toUpperCase()
-              ) : (
-                "?"
-              )}
-            </div>
+      {/* Right side - User info and logout */}
+      <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="hidden md:flex flex-col items-end">
+          <span className="text-sky-100 text-sm font-medium">
+            {admin.name || "Admin User"}
+          </span>
+          <span className="text-orange-300 text-xs">{admin.email}</span>
+        </div>
+        <div
+          className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-red-600 border-2 border-orange-400 flex items-center justify-center text-white font-bold shadow-md text-sm md:text-base cursor-pointer"
+          onClick={() => navigate("/admin/profile")}
+        >
+          {admin.profilePicture ? (
+            <img
+              src={admin.profilePicture}
+              alt="Profile"
+              className="h-full w-full rounded-full object-cover"
+              onError={(e) => (e.target.src = "https://via.placeholder.com/40")}
+            />
+          ) : (
+            admin.name?.charAt(0).toUpperCase() || "A"
+          )}
+        </div>
+        <button
+          onClick={() => setShowLogoutMenu(true)}
+          className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1 md:px-4 md:py-2 rounded-lg transition-all duration-300 border border-orange-400 shadow-md flex items-center space-x-1 md:space-x-2 text-sm md:text-base cursor-pointer"
+          disabled={logoutLoading}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 md:h-5 md:w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
+          </svg>
+          <span className="hidden xs:inline">Logout</span>
+        </button>
 
-            {showDropdown && (
-              <div
-                className={`${theme === 'day' ? 'bg-day-card shadow-lg' : 'bg-night-card text-night-text shadow-night'} absolute right-0 top-full mt-2 w-48 sm:w-56 rounded-lg py-1 z-50 transition-all duration-300 ease-in-out transform origin-top-right border ${theme === 'day' ? 'border-gray-100' : 'border-gray-700'}`}
-              >
+        {/* Logout Confirmation Mini Menu */}
+        {showLogoutMenu && (
+          <div className="absolute top-full right-4 mt-2 w-48 bg-gradient-to-b from-black to-gray-900 rounded-lg shadow-xl border border-orange-600 z-50">
+            <div className="p-4">
+              <p className="text-sky-100 text-sm font-medium mb-3">
+                Are you sure you want to logout?
+              </p>
+              <div className="flex justify-end space-x-2">
                 <button
-                  className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm ${theme === 'day' ? 'hover:bg-gray-100 text-gray-800' : 'hover:bg-gray-700 text-gray-200'} transition-all duration-200`}
-                  onClick={() => {
-                    navigate("/manage-account?tab=updateProfile");
-                    setShowDropdown(false);
-                  }}
+                  onClick={() => setShowLogoutMenu(false)}
+                  className="px-3 py-1 bg-gray-700 text-sky-100 text-sm rounded-lg hover:bg-gray-600 transition-all duration-300 border border-orange-400"
+                  disabled={logoutLoading}
                 >
-                  Manage Account
+                  Cancel
                 </button>
                 <button
-                  className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm ${theme === 'day' ? 'hover:bg-gray-100 text-gray-800' : 'hover:bg-gray-700 text-gray-200'} transition-all duration-200`}
-                  onClick={() => {
-                    navigate("/history");
-                    setShowDropdown(false);
-                  }}
-                >
-                  History
-                </button>
-                <button
-                  className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm ${theme === 'day' ? 'hover:bg-gray-100 text-gray-800' : 'hover:bg-gray-700 text-gray-200'} transition-all duration-200`}
-                  onClick={() => {
-                    navigate("/daily-records");
-                    setShowDropdown(false);
-                  }}
-                >
-                  Daily Records
-                </button>
-                <button
-                  className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm ${theme === 'day' ? 'hover:bg-gray-100 text-gray-800' : 'hover:bg-gray-700 text-gray-200'} transition-all duration-200 rounded-b-lg`}
                   onClick={handleLogout}
+                  className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-all duration-300 border border-orange-400 flex items-center"
+                  disabled={logoutLoading}
                 >
-                  Logout
+                  {logoutLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Logging out...
+                    </>
+                  ) : (
+                    'Logout'
+                  )}
                 </button>
               </div>
-            )}
+            </div>
           </div>
-        ) : (
-          <button
-            onClick={() => navigate("/login")}
-            className="bg-[#E31837] text-white font-medium text-xs sm:text-sm py-1.5 px-3 sm:py-2 sm:px-4 rounded-full flex items-center gap-1 hover:bg-[#C3152F] hover:scale-105 transition-all duration-300 shadow-md cursor-pointer whitespace-nowrap"
-          >
-            <span className="hidden sm:inline">Login</span>
-            <span className="sm:hidden">Log in</span>
-            <img
-              src={assets.arrow_icon}
-              alt="Arrow"
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3"
-            />
-          </button>
         )}
       </div>
     </nav>
