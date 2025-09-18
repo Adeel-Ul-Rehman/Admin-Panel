@@ -10,7 +10,6 @@ import ResetPassword from "./components/ResetPassword";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import EditProduct from "./pages/EditProduct";
-import BulkProductUpload from "./pages/BulkProductUpload";
 import ProductDetails from "./pages/ProductDetails";
 import HeroImages from "./pages/HeroImages";
 import { AppProvider, AppContext } from "./context/AppContext";
@@ -51,7 +50,6 @@ const AppContent = () => {
                 <Route path="/admin/list" element={<List />} />
                 <Route path="/admin/orders" element={<Orders />} />
                 <Route path="/admin/hero-images" element={<HeroImages />} />
-                <Route path="/bulk-upload" element={<BulkProductUpload />} />
                 <Route path="/admin/profile" element={<Profile />} />
                 <Route path="/admin/edit/:id" element={<EditProduct />} />
                 <Route path="/admin/product/:id" element={<ProductDetails />} />
