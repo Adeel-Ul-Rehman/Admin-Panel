@@ -16,41 +16,46 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchStats = async () => {
-      setIsLoading(true);
-      setError("");
+      if (dataLoaded || !admin.token) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
+      if (mounted) {
+        setIsLoading(true);
+        setError("");
+      }
       try {
         const [productsRes, ordersRes, orderStatsRes] = await Promise.all([
           axios.get(`${backendURL}/api/adminCtrl/list`, {
             params: { page: 1, limit: 1 },
             headers: { Authorization: `Bearer ${admin.token}` },
             withCredentials: true,
-          }),
-          axios
-            .get(`${backendURL}/api/adminCtrl/all`, {
-              headers: { Authorization: `Bearer ${admin.token}` },
-              withCredentials: true,
-            })
-            .catch(() => ({ data: { success: true, orders: [] } })),
-          axios
-            .get(`${backendURL}/adminCtrl/order-stats`, {
-              headers: { Authorization: `Bearer ${admin.token}` },
-              withCredentials: true,
-            })
-            .catch(() => ({
-              data: {
-                success: true,
-                stats: {
-                  totalOrders: 0,
-                  pendingOrders: 0,
-                  processingOrders: 0,
-                  deliveredOrders: 0,
-                  totalRevenue: 0,
-                },
+          }).catch(() => ({ data: { success: true, pagination: { total: 0 } } })),
+          axios.get(`${backendURL}/api/adminCtrl/all`, {
+            headers: { Authorization: `Bearer ${admin.token}` },
+            withCredentials: true,
+          }).catch(() => ({ data: { success: true, orders: [] } })),
+          axios.get(`${backendURL}/api/adminCtrl/order-stats`, {
+            headers: { Authorization: `Bearer ${admin.token}` },
+            withCredentials: true,
+          }).catch(() => ({
+            data: {
+              success: true,
+              stats: {
+                totalOrders: 0,
+                pendingOrders: 0,
+                processingOrders: 0,
+                deliveredOrders: 0,
+                totalRevenue: 0,
               },
-            })),
+            },
+          })),
         ]);
 
         const productsTotal = productsRes.data.success
@@ -59,7 +64,6 @@ const Dashboard = () => {
         const ordersTotal = ordersRes.data.success
           ? ordersRes.data.orders?.length || 0
           : 0;
-
         const orderStats = orderStatsRes.data.success
           ? orderStatsRes.data.stats
           : {
@@ -70,27 +74,46 @@ const Dashboard = () => {
               totalRevenue: 0,
             };
 
-        setStats({
-          products: productsTotal,
-          orders: ordersTotal,
-          ...orderStats,
-        });
+        if (mounted) {
+          setStats({
+            products: productsTotal,
+            orders: ordersTotal,
+            ...orderStats,
+          });
+          setDataLoaded(true);
+        }
       } catch (error) {
-        setError("Failed to fetch dashboard data");
+        console.error("Dashboard fetch error:", error.response?.data || error);
+        if (mounted) setError("Failed to fetch dashboard data");
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     if (!admin.id || !admin.token) {
-      fetchAdminProfile();
-    }
-    if (admin.token) {
-      fetchStats();
+      fetchAdminProfile().then(() => {
+        if (admin.token && mounted) {
+          fetchStats();
+        } else if (mounted) {
+          setIsLoading(false);
+          setError("Please log in to view dashboard");
+          //navigate('/login');
+        }
+      }).catch(() => {
+        if (mounted) {
+          setIsLoading(false);
+          setError("Failed to authenticate. Please log in.");
+          //navigate('/login');
+        }
+      });
     } else {
-      setIsLoading(false);
+      fetchStats();
     }
-  }, [admin.token, fetchAdminProfile]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [admin.token, admin.id, fetchAdminProfile, dataLoaded]);
 
   if (isLoading) {
     return (
@@ -162,7 +185,7 @@ const Dashboard = () => {
                     alt="Profile"
                     className="h-full w-full rounded-full object-cover"
                     onError={(e) =>
-                      (e.target.src = "https://via.placeholder.com/100")
+                      (e.target.src = "https://placehold.co/100x100/gray/white?text=A")
                     }
                   />
                 ) : (

@@ -132,7 +132,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const fetchAdminProfile = async () => {
+  const fetchAdminProfile = async (retryCount = 3) => {
     const token = sessionStorage.getItem('adminToken');
     if (!token) {
       console.log('No admin token found');
@@ -158,12 +158,17 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Fetch admin profile error:', err.response?.data || err);
+      if ((err.response?.status === 401 || err.response?.status === 403) && retryCount > 0) {
+        // Retry with a delay if unauthorized
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchAdminProfile(retryCount - 1);
+      }
       if (err.response?.status === 401 || err.response?.status === 403) {
         updateAdmin({ token: '', id: null, name: '', email: '', profilePicture: '' });
         sessionStorage.removeItem('admin');
         sessionStorage.removeItem('adminToken');
       }
-      throw err; // Allow components to handle the error
+      throw err;
     }
   };
 
@@ -176,7 +181,9 @@ export const AppProvider = ({ children }) => {
       const adminData = JSON.parse(storedAdmin);
       adminData.token = storedToken;
       setAdmin(adminData);
-      fetchAdminProfile(); // Verify token validity
+      fetchAdminProfile().catch(() => {
+        console.log('Initial profile fetch failed, user may need to log in');
+      });
     }
   }, []);
 

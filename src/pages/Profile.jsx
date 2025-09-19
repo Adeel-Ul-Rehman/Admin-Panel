@@ -26,8 +26,12 @@ const Profile = () => {
       setIsLoading(true);
       try {
         await fetchAdminProfile();
+        setImagePreview(admin.profilePicture || null);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch profile');
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          navigate('/login');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -97,6 +101,9 @@ const Profile = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to remove profile picture');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        navigate('/login');
+      }
     } finally {
       setIsLoading(false);
       setShowRemoveConfirm(false);
@@ -147,6 +154,9 @@ const Profile = () => {
     } catch (err) {
       console.error('Profile update error:', err.response?.data || err);
       setError(err.response?.data?.message || 'Failed to update profile');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        navigate('/login');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -169,7 +179,7 @@ const Profile = () => {
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = 'https://placehold.co/150x150?text=No+Image';
+                    e.target.src = 'https://placehold.co/150x150/gray/white?text=A';
                     e.target.style.display = 'block';
                   }}
                 />
