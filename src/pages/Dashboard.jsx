@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { backendURL } from "../App";
@@ -16,16 +16,21 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
     const fetchStats = async () => {
-      if (dataLoaded || !admin.token) {
-        if (mounted) setIsLoading(false);
+      if (!admin.token) {
+        if (mounted) {
+          setIsLoading(false);
+          setError("Please log in to view dashboard");
+        }
         return;
       }
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
       if (mounted) {
         setIsLoading(true);
         setError("");
@@ -80,10 +85,9 @@ const Dashboard = () => {
             orders: ordersTotal,
             ...orderStats,
           });
-          setDataLoaded(true);
         }
       } catch (error) {
-        console.error("Dashboard fetch error:", error.response?.data || error);
+        console.error("Dashboard fetch error:", error.response?.data?.message || error.message);
         if (mounted) setError("Failed to fetch dashboard data");
       } finally {
         if (mounted) setIsLoading(false);
@@ -97,13 +101,11 @@ const Dashboard = () => {
         } else if (mounted) {
           setIsLoading(false);
           setError("Please log in to view dashboard");
-          //navigate('/login');
         }
       }).catch(() => {
         if (mounted) {
           setIsLoading(false);
           setError("Failed to authenticate. Please log in.");
-          //navigate('/login');
         }
       });
     } else {
@@ -112,8 +114,9 @@ const Dashboard = () => {
 
     return () => {
       mounted = false;
+      hasLoadedRef.current = false; // Reset on unmount
     };
-  }, [admin.token, admin.id, fetchAdminProfile, dataLoaded]);
+  }, [admin.token, admin.id, fetchAdminProfile]);
 
   if (isLoading) {
     return (

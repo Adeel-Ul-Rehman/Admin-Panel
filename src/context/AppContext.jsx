@@ -13,7 +13,6 @@ export const AppProvider = ({ children }) => {
     profilePicture: '',
   });
 
-  // Hero Images Functions
   const [heroImages, setHeroImages] = useState([]);
 
   const fetchHeroImages = async () => {
@@ -32,7 +31,7 @@ export const AppProvider = ({ children }) => {
         setHeroImages(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching hero images:', error.response?.data || error);
+      console.error('Error fetching hero images:', error.response?.data?.message || error.message);
     }
   };
 
@@ -57,7 +56,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error toggling hero image availability:', error.response?.data || error);
+      console.error('Error toggling hero image availability:', error.response?.data?.message || error.message);
       return { success: false, message: error.response?.data?.message || 'Failed to toggle availability' };
     }
   };
@@ -81,7 +80,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error adding hero image:', error.response?.data || error);
+      console.error('Error adding hero image:', error.response?.data?.message || error.message);
       return { success: false, message: error.response?.data?.message || 'Failed to add hero image' };
     }
   };
@@ -105,7 +104,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error updating hero image:', error.response?.data || error);
+      console.error('Error updating hero image:', error.response?.data?.message || error.message);
       return { success: false, message: error.response?.data?.message || 'Failed to update hero image' };
     }
   };
@@ -127,7 +126,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error deleting hero image:', error.response?.data || error);
+      console.error('Error deleting hero image:', error.response?.data?.message || error.message);
       return { success: false, message: error.response?.data?.message || 'Failed to delete hero image' };
     }
   };
@@ -146,7 +145,7 @@ export const AppProvider = ({ children }) => {
       });
 
       if (response.data.success) {
-        const { id, name, email, profilePicture } = response.data.user;
+        const { id, name, email, profilePicture } = response.data.admin;
         const adminData = { token, id, name, email, profilePicture: profilePicture || '' };
         setAdmin(adminData);
         sessionStorage.setItem('admin', JSON.stringify(adminData));
@@ -157,9 +156,8 @@ export const AppProvider = ({ children }) => {
         sessionStorage.removeItem('adminToken');
       }
     } catch (err) {
-      console.error('Fetch admin profile error:', err.response?.data || err);
+      console.error('Fetch admin profile error:', err.response?.data?.message || err.message);
       if ((err.response?.status === 401 || err.response?.status === 403) && retryCount > 0) {
-        // Retry with a delay if unauthorized
         await new Promise(resolve => setTimeout(resolve, 1000));
         return fetchAdminProfile(retryCount - 1);
       }
@@ -168,11 +166,10 @@ export const AppProvider = ({ children }) => {
         sessionStorage.removeItem('admin');
         sessionStorage.removeItem('adminToken');
       }
-      throw err;
+      throw new Error(err.response?.data?.message || 'Failed to fetch profile');
     }
   };
 
-  // Load admin data from sessionStorage on mount
   useEffect(() => {
     const storedAdmin = sessionStorage.getItem('admin');
     const storedToken = sessionStorage.getItem('adminToken');
@@ -181,13 +178,12 @@ export const AppProvider = ({ children }) => {
       const adminData = JSON.parse(storedAdmin);
       adminData.token = storedToken;
       setAdmin(adminData);
-      fetchAdminProfile().catch(() => {
-        console.log('Initial profile fetch failed, user may need to log in');
+      fetchAdminProfile().catch((err) => {
+        console.error('Initial profile fetch failed:', err.message);
       });
     }
   }, []);
 
-  // Update admin state and sessionStorage
   const updateAdmin = (adminData) => {
     setAdmin(adminData);
     if (adminData.token && adminData.id) {
@@ -215,3 +211,5 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+export default AppProvider;

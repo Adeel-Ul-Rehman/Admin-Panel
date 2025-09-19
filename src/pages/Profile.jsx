@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
@@ -15,6 +15,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const navigate = useNavigate();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -23,6 +24,8 @@ const Profile = () => {
         navigate('/login');
         return;
       }
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
       setIsLoading(true);
       try {
         await fetchAdminProfile();
@@ -37,13 +40,16 @@ const Profile = () => {
       }
     };
     loadProfile();
+    return () => {
+      hasLoadedRef.current = false; // Reset on unmount
+    };
   }, [fetchAdminProfile, admin.token, navigate]);
 
   useEffect(() => {
     setName(admin.name || '');
     setEmail(admin.email || '');
     setImagePreview(admin.profilePicture || null);
-  }, [admin]);
+  }, [admin.name, admin.email, admin.profilePicture]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -138,14 +144,14 @@ const Profile = () => {
       if (response.data.success) {
         updateAdmin({
           ...admin,
-          name: response.data.user.name,
-          email: response.data.user.email,
-          profilePicture: response.data.user.profilePicture || null,
+          name: response.data.admin.name,
+          email: response.data.admin.email,
+          profilePicture: response.data.admin.profilePicture || null,
         });
         setError('Profile updated successfully');
         setPassword('');
         setProfilePicture(null);
-        setImagePreview(response.data.user.profilePicture || null);
+        setImagePreview(response.data.admin.profilePicture || null);
         document.getElementById('profilePicture').value = null;
         setTimeout(() => setError(''), 3000);
       } else {
