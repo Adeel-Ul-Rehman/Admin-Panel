@@ -32,7 +32,7 @@ export const AppProvider = ({ children }) => {
         setHeroImages(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching hero images:', error);
+      console.error('Error fetching hero images:', error.response?.data || error);
     }
   };
 
@@ -57,7 +57,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error toggling hero image availability:', error);
+      console.error('Error toggling hero image availability:', error.response?.data || error);
       return { success: false, message: error.response?.data?.message || 'Failed to toggle availability' };
     }
   };
@@ -81,7 +81,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error adding hero image:', error);
+      console.error('Error adding hero image:', error.response?.data || error);
       return { success: false, message: error.response?.data?.message || 'Failed to add hero image' };
     }
   };
@@ -105,7 +105,7 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error updating hero image:', error);
+      console.error('Error updating hero image:', error.response?.data || error);
       return { success: false, message: error.response?.data?.message || 'Failed to update hero image' };
     }
   };
@@ -127,36 +127,43 @@ export const AppProvider = ({ children }) => {
       }
       return { success: false, message: response.data.message };
     } catch (error) {
-      console.error('Error deleting hero image:', error);
+      console.error('Error deleting hero image:', error.response?.data || error);
       return { success: false, message: error.response?.data?.message || 'Failed to delete hero image' };
     }
   };
 
   const fetchAdminProfile = async () => {
     const token = sessionStorage.getItem('adminToken');
-    if (!token) return;
+    if (!token) {
+      console.log('No admin token found');
+      return;
+    }
 
     try {
-      const response = await axios.get(`${backendURL}/api/user/me`, {
+      const response = await axios.get(`${backendURL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
 
       if (response.data.success) {
-        const { id, name, email, profilePicture } = response.data.admin;
+        const { id, name, email, profilePicture } = response.data.user;
         const adminData = { token, id, name, email, profilePicture: profilePicture || '' };
         setAdmin(adminData);
         sessionStorage.setItem('admin', JSON.stringify(adminData));
       } else {
         console.error('Failed to fetch admin profile:', response.data.message);
         updateAdmin({ token: '', id: null, name: '', email: '', profilePicture: '' });
+        sessionStorage.removeItem('admin');
+        sessionStorage.removeItem('adminToken');
       }
     } catch (err) {
       console.error('Fetch admin profile error:', err.response?.data || err);
-      // If token is invalid, clear it
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
         updateAdmin({ token: '', id: null, name: '', email: '', profilePicture: '' });
+        sessionStorage.removeItem('admin');
+        sessionStorage.removeItem('adminToken');
       }
+      throw err; // Allow components to handle the error
     }
   };
 
@@ -167,10 +174,9 @@ export const AppProvider = ({ children }) => {
     
     if (storedAdmin && storedToken) {
       const adminData = JSON.parse(storedAdmin);
-      // Ensure the token in admin data matches the stored token
       adminData.token = storedToken;
       setAdmin(adminData);
-      fetchAdminProfile(); // Verify the token is still valid
+      fetchAdminProfile(); // Verify token validity
     }
   }, []);
 
