@@ -183,6 +183,7 @@ const HeroImages = () => {
       if (response.data.success) {
         setActiveCount(response.data.activeCount || 0);
       }
+      fetchHeroImages();
     } catch (error) {
       console.error("Error:", error);
       setError("Failed to delete image");
@@ -424,20 +425,21 @@ const HeroImages = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-gray-300 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-300 mb-3 truncate">
                     {image.altText || "No alt text provided"}
                   </p>
 
+                  {/* Fixed Button Container */}
                   <div className="flex flex-row gap-2">
                     <button
                       onClick={() =>
                         handleToggleAvailability(image.id, image.isActive)
                       }
                       disabled={loading}
-                      className="flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm transition-all duration-300 flex items-center justify-center bg-yellow-600 text-white hover:bg-yellow-700"
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs transition-all duration-300 flex items-center justify-center bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+                        className="w-3 h-3 mr-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -460,10 +462,10 @@ const HeroImages = () => {
                     <button
                       onClick={() => handleEdit(image)}
                       disabled={loading}
-                      className="flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm transition-all duration-300 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700"
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs transition-all duration-300 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+                        className="w-3 h-3 mr-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -482,10 +484,10 @@ const HeroImages = () => {
                     <button
                       onClick={() => handleDeleteClick(image.id)}
                       disabled={loading}
-                      className="flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm transition-all duration-300 flex items-center justify-center bg-red-600 text-white hover:bg-red-700"
+                      className="flex-1 px-2 py-1.5 rounded-lg text-xs transition-all duration-300 flex items-center justify-center bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1"
+                        className="w-3 h-3 mr-1"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -509,8 +511,8 @@ const HeroImages = () => {
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl p-4 sm:p-6 max-w-sm w-full mx-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+            <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl p-4 sm:p-6 max-w-sm w-full">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">
                 Confirm Deletion
               </h3>
@@ -518,62 +520,48 @@ const HeroImages = () => {
                 Are you sure you want to delete this hero image? This action
                 cannot be undone.
               </p>
-<div className="flex flex-row gap-1">
-  <button
-    onClick={() => handleToggleAvailability(image.id, image.isActive)}
-    disabled={loading}
-    className="flex-1 
-      px-2 sm:px-2.5 lg:px-2 
-      py-1 sm:py-1.5 lg:py-1 
-      rounded-lg 
-      text-xs lg:text-[11px] 
-      transition-all duration-300 
-      flex items-center justify-center 
-      bg-yellow-600 text-white hover:bg-yellow-700"
-  >
-    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={image.isActive ? "M6 18L18 6M6 6l12 12" : "M5 13l4 4L19 7"}></path>
-    </svg>
-    {image.isActive ? 'Deactivate' : 'Activate'}
-  </button>
-  
-  <button
-    onClick={() => handleEdit(image)}
-    disabled={loading}
-    className="flex-1 
-      px-2 sm:px-2.5 lg:px-2 
-      py-1 sm:py-1.5 lg:py-1 
-      rounded-lg 
-      text-xs lg:text-[11px] 
-      transition-all duration-300 
-      flex items-center justify-center 
-      bg-blue-600 text-white hover:bg-blue-700"
-  >
-    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-    </svg>
-    Edit
-  </button>
-  
-  <button
-    onClick={() => handleDeleteClick(image.id)}
-    disabled={loading}
-    className="flex-1 
-      px-2 sm:px-2.5 lg:px-2 
-      py-1 sm:py-1.5 lg:py-1 
-      rounded-lg 
-      text-xs lg:text-[11px] 
-      transition-all duration-300 
-      flex items-center justify-center 
-      bg-red-600 text-white hover:bg-red-700"
-  >
-    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-    </svg>
-    Delete
-  </button>
-</div>
-
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-300 text-sm disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 text-sm disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4 mr-2 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
