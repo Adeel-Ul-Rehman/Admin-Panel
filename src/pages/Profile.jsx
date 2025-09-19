@@ -17,10 +17,22 @@ const Profile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchAdminProfile();
-  }, []);
+    // Fetch admin profile on mount
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        await fetchAdminProfile();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProfile();
+  }, [fetchAdminProfile]);
 
   useEffect(() => {
+    // Sync state with admin context
     setName(admin.name || '');
     setEmail(admin.email || '');
     setImagePreview(admin.profilePicture || null);
@@ -29,6 +41,14 @@ const Profile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (JPG, PNG)');
+      setProfilePicture(null);
+      setImagePreview(null);
+      e.target.value = null;
+      return;
+    }
 
     if (file.size > 250 * 1024) {
       setError('Image size exceeds 250KB limit');
@@ -53,7 +73,7 @@ const Profile = () => {
     setError('');
 
     try {
-      const response = await axios.delete(`${backendURL}/user/remove-profile-picture/${admin.id}`, {
+      const response = await axios.delete(`${backendURL}/api/user/profile-pic`, {
         headers: {
           Authorization: `Bearer ${admin.token}`,
         },
@@ -70,7 +90,7 @@ const Profile = () => {
         setError('Profile picture removed successfully');
         setTimeout(() => setError(''), 3000);
       } else {
-        setError(response.data.message);
+        setError(response.data.message || 'Failed to remove profile picture');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to remove profile picture');
@@ -85,31 +105,43 @@ const Profile = () => {
     setIsLoading(true);
     setError('');
 
+    // Basic validation
+    if (!name || !email) {
+      setError('Name and email are required');
+      setIsLoading(false);
+      return;
+    }
+
     const formData = new FormData();
-    if (name) formData.append('name', name);
-    if (email) formData.append('email', email);
+    formData.append('name', name);
+    formData.append('email', email);
     if (password) formData.append('password', password);
     if (profilePicture) formData.append('profilePicture', profilePicture);
 
     try {
-      const response = await axios.put(`${backendURL}/user/update/${admin.id}`, formData, {
+      const response = await axios.put(`${backendURL}/api/user/profile`, formData, {
         headers: {
           Authorization: `Bearer ${admin.token}`,
           'Content-Type': 'multipart/form-data',
         },
         withCredentials: true,
       });
-      updateAdmin({
-        ...admin,
-        name: response.data.admin.name,
-        email: response.data.admin.email,
-        profilePicture: response.data.admin.profilePicture || null,
-      });
-      setError('Profile updated successfully');
-      setPassword('');
-      setProfilePicture(null);
-      setImagePreview(response.data.admin.profilePicture || null);
-      setTimeout(() => setError(''), 3000);
+      if (response.data.success) {
+        updateAdmin({
+          ...admin,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          profilePicture: response.data.user.profilePicture || null,
+        });
+        setError('Profile updated successfully');
+        setPassword('');
+        setProfilePicture(null);
+        setImagePreview(response.data.user.profilePicture || null);
+        document.getElementById('profilePicture').value = null;
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError(response.data.message || 'Failed to update profile');
+      }
     } catch (err) {
       console.error('Profile update error:', err.response?.data || err);
       setError(err.response?.data?.message || 'Failed to update profile');
@@ -135,7 +167,8 @@ const Profile = () => {
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.src = 'https://via.placeholder.com/150?text=No+Image';
+                    e.target.style.display = 'block';
                   }}
                 />
               ) : (
