@@ -41,7 +41,7 @@ const Profile = () => {
     };
     loadProfile();
     return () => {
-      hasLoadedRef.current = false;
+      hasLoadedRef.current = false; // Reset on unmount
     };
   }, [fetchAdminProfile, admin.token, navigate]);
 
@@ -86,16 +86,12 @@ const Profile = () => {
     setError('');
 
     try {
-      const response = await axios.delete(
-        `${backendURL}/api/adminCtrl/remove-profile-picture/${admin.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${admin.token}`,
-          },
-          withCredentials: true,
-        }
-      );
-      
+      const response = await axios.delete(`${backendURL}/api/user/me`, {
+        headers: {
+          Authorization: `Bearer ${admin.token}`,
+        },
+        withCredentials: true,
+      });
       if (response.data.success) {
         updateAdmin({
           ...admin,
@@ -138,18 +134,13 @@ const Profile = () => {
     if (profilePicture) formData.append('profilePicture', profilePicture);
 
     try {
-      const response = await axios.put(
-        `${backendURL}/api/adminCtrl/update/${admin.id}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${admin.token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-          withCredentials: true,
-        }
-      );
-      
+      const response = await axios.put(`${backendURL}/api/user/me`, formData, {
+        headers: {
+          Authorization: `Bearer ${admin.token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true,
+      });
       if (response.data.success) {
         updateAdmin({
           ...admin,
@@ -194,7 +185,7 @@ const Profile = () => {
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM3NDE1MSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQwIiBmaWxsPSJ3aGl0ZSI+QTwvdGV4dD48L3N2Zz4=';
+                    e.target.src = 'https://placehold.co/150x150/gray/white?text=A';
                     e.target.style.display = 'block';
                   }}
                 />
