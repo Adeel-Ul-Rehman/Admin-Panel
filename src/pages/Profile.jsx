@@ -86,7 +86,7 @@ const Profile = () => {
     setError('');
 
     try {
-      const response = await axios.delete(`${backendURL}/api/user/update/${admin.id}`, {
+      const response = await axios.delete(`${backendURL}/api/user/remove-profile-picture/${admin.id}`, {
         headers: {
           Authorization: `Bearer ${admin.token}`,
         },
