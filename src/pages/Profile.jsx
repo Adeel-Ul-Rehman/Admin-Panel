@@ -118,14 +118,26 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+
+    // Check if there are any changes
+    const hasChanges =
+      name !== (admin.name || '') ||
+      email !== (admin.email || '') ||
+      password !== '' ||
+      profilePicture !== null;
+
+    if (!hasChanges) {
+      setError('No changes made to update');
+      return;
+    }
 
     if (!name || !email) {
       setError('Name and email are required');
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const formData = new FormData();
     formData.append('name', name);
