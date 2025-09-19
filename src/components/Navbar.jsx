@@ -98,7 +98,10 @@ const Navbar = () => {
               src={admin.profilePicture}
               alt="Profile"
               className="h-full w-full rounded-full object-cover"
-              onError={(e) => (e.target.src = "https://via.placeholder.com/40")}
+              onError={(e) => {
+                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMzc0MTUxIi8+PHRleHQgeD0iMjAiIHk9IjIwIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==';
+                e.target.style.display = 'block';
+              }}
             />
           ) : (
             admin.name?.charAt(0).toUpperCase() || "A"
