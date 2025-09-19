@@ -140,7 +140,7 @@ export const AppProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.get(`${backendURL}/api/user/profile`, {
+      const response = await axios.get(`${backendURL}/api/adminCtrl/profile`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
