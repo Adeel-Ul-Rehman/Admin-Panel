@@ -86,7 +86,7 @@ const Profile = () => {
     setError('');
 
     try {
-      const response = await axios.delete(`${backendURL}/api/user/me`, {
+      const response = await axios.delete(`${backendURL}/api/user/update/${admin.id}`, {
         headers: {
           Authorization: `Bearer ${admin.token}`,
         },
@@ -146,7 +146,7 @@ const Profile = () => {
     if (profilePicture) formData.append('profilePicture', profilePicture);
 
     try {
-      const response = await axios.put(`${backendURL}/api/user/me`, formData, {
+      const response = await axios.put(`${backendURL}/api/user/update/${admin.id}`, formData, {
         headers: {
           Authorization: `Bearer ${admin.token}`,
           'Content-Type': 'multipart/form-data',
