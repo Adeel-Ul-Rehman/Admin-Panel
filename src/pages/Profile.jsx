@@ -24,12 +24,14 @@ const Profile = () => {
         navigate('/login');
         return;
       }
+      
+      // Only load once
       if (hasLoadedRef.current) return;
       hasLoadedRef.current = true;
+      
       setIsLoading(true);
       try {
         await fetchAdminProfile();
-        setImagePreview(admin.profilePicture || null);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch profile');
         if (err.response?.status === 401 || err.response?.status === 403) {
@@ -39,11 +41,9 @@ const Profile = () => {
         setIsLoading(false);
       }
     };
+    
     loadProfile();
-    return () => {
-      hasLoadedRef.current = false; // Reset on unmount
-    };
-  }, [fetchAdminProfile, admin.token, navigate]);
+  }, [admin.token, navigate]); // Removed fetchAdminProfile from dependencies
 
   useEffect(() => {
     setName(admin.name || '');
@@ -118,26 +118,26 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
-
-    // Check if there are any changes
-    const hasChanges =
-      name !== (admin.name || '') ||
-      email !== (admin.email || '') ||
-      password !== '' ||
-      profilePicture !== null;
-
-    if (!hasChanges) {
-      setError('No changes made to update');
-      return;
-    }
 
     if (!name || !email) {
       setError('Name and email are required');
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    // Check if there are any changes
+    const nameChanged = name !== admin.name;
+    const emailChanged = email !== admin.email;
+    const passwordChanged = !!password;
+    const imageChanged = !!profilePicture;
+    
+    if (!nameChanged && !emailChanged && !passwordChanged && !imageChanged) {
+      setError('No changes detected');
+      setIsLoading(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.append('name', name);
