@@ -1,356 +1,336 @@
-import React, { useState, useEffect, useContext } from "react";
-import { motion } from "framer-motion";
-import { FiUser, FiMail, FiPhone, FiCamera, FiX, FiEdit3 } from "react-icons/fi";
-import { AppContext } from "../context/AppContext";
-import { backendURL } from "../App";
-import axios from "axios";
-import { toast } from "react-toastify";
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { AppContext } from '../context/AppContext';
+import { backendURL } from '../App';
 
 const Profile = () => {
-  const { user, setUser } = useContext(AppContext);
-  const [formData, setFormData] = useState({
-    name: "",
-    lastName: "",
-    email: "",
-    mobileNumber: "",
-  });
-  const [profilePic, setProfilePic] = useState(null);
-  const [profilePicFile, setProfilePicFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState(false);
-  const [uploadingPic, setUploadingPic] = useState(false);
-  const [removingPic, setRemovingPic] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const { admin, updateAdmin, fetchAdminProfile } = useContext(AppContext);
+  const [name, setName] = useState(admin.name || '');
+  const [email, setEmail] = useState(admin.email || '');
+  const [password, setPassword] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [imagePreview, setImagePreview] = useState(admin.profilePicture || null);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const navigate = useNavigate();
 
-  // Fetch user profile data on component mount
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user || !user.id) return;
-      setLoading(true);
-      try {
-        const response = await axios.get(`${backendURL}/api/user/profile`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          withCredentials: true,
-        });
-        if (response.data.success) {
-          const { name, lastName, email, mobileNumber, profilePicture } = response.data.user;
-          setFormData({ name, lastName, email, mobileNumber });
-          setProfilePic(profilePicture);
-          setUser(response.data.user); // Update context
-        } else {
-          toast.error(response.data.message || "Failed to fetch profile");
-        }
-      } catch (err) {
-        console.error("Profile fetch error:", err);
-        toast.error(err.response?.data?.message || "Failed to fetch profile");
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchAdminProfile();
+  }, []);
 
-    fetchProfile();
-  }, [user?.id]);
+  useEffect(() => {
+    setName(admin.name || '');
+    setEmail(admin.email || '');
+    setImagePreview(admin.profilePicture || null);
+  }, [admin]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleProfilePicChange = (e) => {
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Validate file type and size (e.g., images only, max 5MB)
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please select an image file");
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size must be less than 5MB");
-        return;
-      }
-      setProfilePicFile(file);
-      // Preview the image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePic(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 250 * 1024) {
+      setError('Image size exceeds 250KB limit');
+      setProfilePicture(null);
+      setImagePreview(null);
+      e.target.value = null;
+      return;
     }
+
+    setProfilePicture(file);
+    setError('');
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const uploadProfilePic = async () => {
-    if (!profilePicFile) return;
-    setUploadingPic(true);
-    const formDataToSend = new FormData();
-    formDataToSend.append("profilePic", profilePicFile);
+  const handleRemoveProfilePicture = async () => {
+    setIsLoading(true);
+    setError('');
+
     try {
-      const response = await axios.post(`${backendURL}/api/user/profile-pic`, formDataToSend, {
+      const response = await axios.delete(`${backendURL}/user/remove-profile-picture/${admin.id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${admin.token}`,
         },
         withCredentials: true,
       });
       if (response.data.success) {
-        setProfilePic(response.data.profilePicture);
-        setUser((prev) => ({ ...prev, profilePicture: response.data.profilePicture }));
-        setProfilePicFile(null);
-        toast.success("Profile picture updated successfully");
+        updateAdmin({
+          ...admin,
+          profilePicture: null,
+        });
+        setProfilePicture(null);
+        setImagePreview(null);
+        document.getElementById('profilePicture').value = null;
+        setError('Profile picture removed successfully');
+        setTimeout(() => setError(''), 3000);
       } else {
-        toast.error(response.data.message || "Failed to upload profile picture");
+        setError(response.data.message);
       }
     } catch (err) {
-      console.error("Upload error:", err);
-      toast.error(err.response?.data?.message || "Failed to upload profile picture");
+      setError(err.response?.data?.message || 'Failed to remove profile picture');
     } finally {
-      setUploadingPic(false);
+      setIsLoading(false);
+      setShowRemoveConfirm(false);
     }
   };
 
-  const removeProfilePic = async () => {
-    if (!profilePic) return;
-    if (!window.confirm("Are you sure you want to remove your profile picture?")) return;
-    setRemovingPic(true);
-    try {
-      const response = await axios.delete(`${backendURL}/api/user/profile-pic`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        withCredentials: true,
-      });
-      if (response.data.success) {
-        setProfilePic(null);
-        setUser((prev) => ({ ...prev, profilePicture: null }));
-        toast.success("Profile picture removed successfully");
-      } else {
-        toast.error(response.data.message || "Failed to remove profile picture");
-      }
-    } catch (err) {
-      console.error("Remove error:", err);
-      toast.error(err.response?.data?.message || "Failed to remove profile picture");
-    } finally {
-      setRemovingPic(false);
-    }
-  };
-
-  const handleUpdateProfile = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setUpdating(true);
+    setIsLoading(true);
+    setError('');
+
+    const formData = new FormData();
+    if (name) formData.append('name', name);
+    if (email) formData.append('email', email);
+    if (password) formData.append('password', password);
+    if (profilePicture) formData.append('profilePicture', profilePicture);
+
     try {
-      const response = await axios.put(`${backendURL}/api/user/profile`, formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const response = await axios.put(`${backendURL}/user/update/${admin.id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${admin.token}`,
+          'Content-Type': 'multipart/form-data',
+        },
         withCredentials: true,
       });
-      if (response.data.success) {
-        setUser((prev) => ({ ...prev, ...formData }));
-        setEditing(false);
-        toast.success("Profile updated successfully");
-      } else {
-        toast.error(response.data.message || "Failed to update profile");
-      }
+      updateAdmin({
+        ...admin,
+        name: response.data.admin.name,
+        email: response.data.admin.email,
+        profilePicture: response.data.admin.profilePicture || null,
+      });
+      setError('Profile updated successfully');
+      setPassword('');
+      setProfilePicture(null);
+      setImagePreview(response.data.admin.profilePicture || null);
+      setTimeout(() => setError(''), 3000);
     } catch (err) {
-      console.error("Update error:", err);
-      toast.error(err.response?.data?.message || "Failed to update profile");
+      console.error('Profile update error:', err.response?.data || err);
+      setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
-      setUpdating(false);
+      setIsLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-2xl mx-auto">
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="bg-white shadow-lg rounded-2xl p-6 sm:p-8"
-        >
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-            <p className="text-gray-600">Update your personal information</p>
-          </div>
+    <div className="bg-gradient-to-br from-gray-900 to-black py-6 px-4 sm:px-6 lg:px-8 min-h-screen">
+      <div className="max-w-lg mx-auto w-full">
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Admin Profile</h2>
+          <p className="mt-2 text-xs sm:text-sm text-gray-400">Update your profile details</p>
+        </div>
 
-          {/* Profile Picture Section */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-4 border-white shadow-md">
-                {profilePic ? (
-                  <img
-                    src={profilePic}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/128?text=No+Image";
-                    }}
-                  />
-                ) : (
-                  <div className="text-gray-500 text-4xl">
-                    {formData.name ? formData.name.charAt(0).toUpperCase() : "U"}
-                  </div>
-                )}
-              </div>
-              <label className="absolute bottom-2 right-2 bg-blue-500 p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
-                <FiCamera className="w-5 h-5 text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePicChange}
-                  className="hidden"
+        <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl shadow-2xl border border-gray-700/50 p-4 sm:p-6">
+          <div className="flex justify-center mb-4 sm:mb-6">
+            <div className="relative w-20 sm:w-24 h-20 sm:h-24 rounded-full overflow-hidden border-2 border-orange-400 flex items-center justify-center bg-red-600">
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
                 />
-              </label>
-              {profilePic && (
-                <button
-                  onClick={removeProfilePic}
-                  disabled={removingPic}
-                  className="absolute top-2 right-2 bg-red-500 p-2 rounded-full hover:bg-red-600 transition-colors disabled:opacity-50"
-                >
-                  <FiX className="w-4 h-4 text-white" />
-                </button>
+              ) : (
+                <span className="text-xl sm:text-2xl font-bold text-white">
+                  {admin.name?.charAt(0).toUpperCase() || 'A'}
+                </span>
               )}
-            </div>
-            {profilePicFile && (
-              <button
-                onClick={uploadProfilePic}
-                disabled={uploadingPic}
-                className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
-              >
-                {uploadingPic ? "Uploading..." : "Upload Photo"}
-              </button>
-            )}
-          </div>
-
-          {/* Profile Form */}
-          <form onSubmit={handleUpdateProfile} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name
-                  <FiEdit3 className={`ml-1 ${editing ? "text-blue-500" : "text-gray-400"}`} />
-                </label>
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all ${
-                      editing ? "bg-white" : "bg-gray-50"
-                    }`}
-                    placeholder="Enter first name"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name
-                  <FiEdit3 className={`ml-1 ${editing ? "text-blue-500" : "text-gray-400"}`} />
-                </label>
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all ${
-                      editing ? "bg-white" : "bg-gray-50"
-                    }`}
-                    placeholder="Enter last name"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-              <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  disabled={!editing}
-                  className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all ${
-                    editing ? "bg-white" : "bg-gray-50"
-                  }`}
-                  placeholder="Enter email"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="tel"
-                  name="mobileNumber"
-                  value={formData.mobileNumber}
-                  onChange={handleInputChange}
-                  disabled={!editing}
-                  className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all ${
-                    editing ? "bg-white" : "bg-gray-50"
-                  }`}
-                  placeholder="Enter mobile number"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              {!editing ? (
+              {imagePreview && (
                 <button
                   type="button"
-                  onClick={() => setEditing(true)}
-                  className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                  onClick={() => setShowRemoveConfirm(true)}
+                  disabled={isLoading}
+                  className="absolute top-1 right-1 bg-red-600/80 hover:bg-red-500/80 text-white rounded-full p-1 sm:p-1.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Edit Profile
+                  <svg className="w-3 sm:w-4 h-3 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
                 </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditing(false);
-                      // Reset to original data if needed
-                    }}
-                    className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updating}
-                    className="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    {updating ? "Updating..." : "Save Changes"}
-                  </button>
-                </>
               )}
             </div>
+          </div>
+
+          {error && (
+            <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl text-xs sm:text-sm backdrop-blur-sm ${error.includes('successfully') ? 'bg-green-900/30 border border-green-700/50 text-green-200' : 'bg-red-900/30 border border-red-700/50 text-red-200'}`}>
+              <div className="flex items-center">
+                <svg className="w-4 sm:w-5 h-4 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={error.includes('successfully') ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}></path>
+                </svg>
+                {error}
+              </div>
+            </div>
+          )}
+
+          <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-300">
+                Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all duration-300 text-xs sm:text-sm"
+                placeholder="Enter your name"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-300">
+                Email address *
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all duration-300 text-xs sm:text-sm"
+                placeholder="Enter your email"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-300">
+                New Password (optional)
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all duration-300 text-xs sm:text-sm"
+                placeholder="Enter new password"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="profilePicture" className="block text-xs sm:text-sm font-medium text-gray-300">
+                Profile Picture (max 250KB)
+              </label>
+              <div className="flex items-center justify-center w-full">
+                <label htmlFor="profilePicture" className="flex flex-col items-center justify-center w-full h-24 sm:h-32 border-2 border-dashed border-gray-600/50 rounded-xl cursor-pointer bg-gray-700/50 hover:bg-gray-700/70 transition-all duration-300">
+                  <div className="flex flex-col items-center justify-center pt-4 sm:pt-5 pb-5 sm:pb-6">
+                    <svg className="w-6 sm:w-8 h-6 sm:h-8 mb-2 sm:mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <p className="mb-1 sm:mb-2 text-xs sm:text-sm text-gray-400">
+                      <span className="font-semibold">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500">JPG, PNG (MAX. 250KB)</p>
+                  </div>
+                  <input
+                    id="profilePicture"
+                    name="profilePicture"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    disabled={isLoading}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="pt-2 sm:pt-4">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2 sm:py-3 px-4 sm:px-6 bg-orange-600 hover:bg-orange-700 text-white rounded-xl transition-all duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xs sm:text-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 sm:h-5 w-4 sm:w-5 mr-2 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 sm:w-5 h-4 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Update Profile
+                  </>
+                )}
+              </button>
+            </div>
           </form>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800/90 backdrop-blur-lg rounded-xl shadow-2xl border border-gray-700/50 p-4 sm:p-6 max-w-sm w-full">
+            <div className="text-center mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-bold text-white">Remove Profile Picture</h3>
+              <p className="mt-2 text-xs sm:text-sm text-gray-300">Are you sure you want to remove your profile picture?</p>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+              <button
+                onClick={() => setShowRemoveConfirm(false)}
+                disabled={isLoading}
+                className="flex-1 py-2 sm:py-3 px-4 sm:px-6 bg-gray-600 hover:bg-gray-500 text-white rounded-xl transition-all duration-300 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveProfilePicture}
+                disabled={isLoading}
+                className="flex-1 py-2 sm:py-3 px-4 sm:px-6 bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all duration-300 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 sm:h-5 w-4 sm:w-5 mr-2 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 sm:w-5 h-4 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Remove
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
