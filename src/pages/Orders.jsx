@@ -47,14 +47,20 @@ const Orders = () => {
   useEffect(() => {
     const filtered = orders.filter((order) => {
       const searchLower = searchQuery.toLowerCase();
-      const fullName = `${order.user?.name || ""} ${
-        order.user?.lastName || ""
-      }`.toLowerCase();
+      const fullName = `${order.user?.name || ""} ${order.user?.lastName || ""}`.toLowerCase();
+      const guestName = `${order.guest?.name || ""}`.toLowerCase();
+      const userEmail = (order.user?.email || "").toLowerCase();
+      const guestEmail = (order.guest?.email || "").toLowerCase();
+      const userPhone = (order.user?.mobileNumber || "").toLowerCase();
+      const guestPhone = (order.guest?.phone || "").toLowerCase();
       return (
         order.id.toLowerCase().includes(searchLower) ||
         fullName.includes(searchLower) ||
-        (order.user?.email || "").toLowerCase().includes(searchLower) ||
-        (order.user?.mobileNumber || "").toLowerCase().includes(searchLower)
+        guestName.includes(searchLower) ||
+        userEmail.includes(searchLower) ||
+        guestEmail.includes(searchLower) ||
+        userPhone.includes(searchLower) ||
+        guestPhone.includes(searchLower)
       );
     });
     setFilteredOrders(filtered);
@@ -474,7 +480,11 @@ const Orders = () => {
                   <div>
                     <p className="text-xs text-gray-500">Customer</p>
                     <p className="text-sm text-white">
-                      {order.user?.name + " " + order.user?.lastName || "Guest"}
+                      {order.isGuest ? (
+                        `${order.guest?.name || 'Guest'} (Guest)`
+                      ) : (
+                        `${order.user?.name || ''} ${order.user?.lastName || ''}`.trim() || 'Guest'
+                      )}
                     </p>
                   </div>
                   <div>
@@ -510,21 +520,22 @@ const Orders = () => {
                   </div>
                 </div>
 
-                {order.payment && order.payment.paymentMethod && (
+                {(order.payment?.paymentMethod || order.paymentMethod) ? (
                   <div className="mb-4 p-3 bg-gray-700/30 rounded-xl">
                     <p className="text-xs text-gray-500 mb-1">Payment Method</p>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">
-                        {getPaymentMethodIcon(order.payment.paymentMethod)}
+                        {getPaymentMethodIcon(order.payment?.paymentMethod || order.paymentMethod)}
                       </span>
                       <span className="text-sm text-white font-medium capitalize">
-                        {order.payment.paymentMethod
+                        {(order.payment?.paymentMethod || order.paymentMethod || '')
+                          .toString()
                           .replace(/([A-Z])/g, " $1")
                           .trim()}
                       </span>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <select
@@ -607,7 +618,7 @@ const Orders = () => {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
+                        strokeWidth="2"
                         d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
@@ -827,23 +838,41 @@ const Orders = () => {
                   <div>
                     <p className="text-xs text-gray-500">Name</p>
                     <p className="text-sm text-white">
-                      {selectedOrder.user?.name +
-                        " " +
-                        selectedOrder.user?.lastName || "Guest"}
+                      {selectedOrder.isGuest ? (
+                        `${selectedOrder.guest?.name || 'Guest'} (Guest)`
+                      ) : (
+                        `${selectedOrder.user?.name || ''} ${selectedOrder.user?.lastName || ''}`.trim() || 'Guest'
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
                     <p className="text-sm text-white">
-                      {selectedOrder.user?.email || "N/A"}
+                      {selectedOrder.isGuest ? (selectedOrder.guest?.email || 'N/A') : (selectedOrder.user?.email || 'N/A')}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Mobile Number</p>
                     <p className="text-sm text-white">
-                      {selectedOrder.user?.mobileNumber || "N/A"}
+                      {selectedOrder.isGuest ? (selectedOrder.guest?.phone || 'N/A') : (selectedOrder.user?.mobileNumber || 'N/A')}
                     </p>
                   </div>
+                  {selectedOrder.isGuest && (
+                    <>
+                      <div>
+                        <p className="text-xs text-gray-500">City</p>
+                        <p className="text-sm text-white">{selectedOrder.city || selectedOrder.guest?.city || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Postal Code</p>
+                        <p className="text-sm text-white">{selectedOrder.postCode || selectedOrder.guest?.postCode || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Country</p>
+                        <p className="text-sm text-white">{selectedOrder.country || selectedOrder.guest?.country || 'N/A'}</p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <p className="text-xs text-gray-500">Order Date</p>
                     <p className="text-sm text-white">
@@ -901,8 +930,7 @@ const Orders = () => {
                   <div>
                     <p className="text-xs text-gray-500">Payment Method</p>
                     <p className="text-sm text-white">
-                      {selectedOrder.paymentMethod || "N/A"}{" "}
-                      {getPaymentMethodIcon(selectedOrder.paymentMethod)}
+                      {(selectedOrder.payment?.paymentMethod || selectedOrder.paymentMethod || "N/A").toString()} {getPaymentMethodIcon(selectedOrder.payment?.paymentMethod || selectedOrder.paymentMethod)}
                     </p>
                   </div>
                   <div>
@@ -918,10 +946,18 @@ const Orders = () => {
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
                   Shipping Address
                 </h4>
-                <p className="text-sm text-white bg-gray-700/50 rounded-xl p-4">
-                  {selectedOrder.shippingAddress ||
-                    "No shipping address provided"}
-                </p>
+                <div className="text-sm text-white bg-gray-700/50 rounded-xl p-4 space-y-1">
+                  <p>{selectedOrder.shippingAddress || "No shipping address provided"}</p>
+                  {(selectedOrder.city || selectedOrder.guest?.city) && (
+                    <p>City: {selectedOrder.city || selectedOrder.guest?.city}</p>
+                  )}
+                  {(selectedOrder.postCode || selectedOrder.guest?.postCode) && (
+                    <p>Postal Code: {selectedOrder.postCode || selectedOrder.guest?.postCode}</p>
+                  )}
+                  {(selectedOrder.country || selectedOrder.guest?.country) && (
+                    <p>Country: {selectedOrder.country || selectedOrder.guest?.country}</p>
+                  )}
+                </div>
               </div>
 
               <div className="mb-6">
@@ -1121,4 +1157,4 @@ const Orders = () => {
   );
 };
 
-export default Orders;  
+export default Orders;
