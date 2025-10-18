@@ -478,14 +478,25 @@ const Orders = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p className="text-xs text-gray-500">Customer</p>
-                    <p className="text-sm text-white">
-                      {order.isGuest ? (
-                        `${order.guest?.name || 'Guest'} (Guest)`
-                      ) : (
-                        `${order.user?.name || ''} ${order.user?.lastName || ''}`.trim() || 'Guest'
-                      )}
-                    </p>
+                    <p className="text-xs text-gray-500 mb-1">Customer</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-white">
+                        {order.isGuest ? (
+                          order.guest?.name || 'Guest'
+                        ) : (
+                          `${order.user?.name || ''} ${order.user?.lastName || ''}`.trim() || 'N/A'
+                        )}
+                      </p>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          order.isGuest
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                        }`}
+                      >
+                        {order.isGuest ? '👤 Guest' : '✓ Registered'}
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Total Amount</p>
@@ -836,14 +847,25 @@ const Orders = () => {
                     )}
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Name</p>
-                    <p className="text-sm text-white">
-                      {selectedOrder.isGuest ? (
-                        `${selectedOrder.guest?.name || 'Guest'} (Guest)`
-                      ) : (
-                        `${selectedOrder.user?.name || ''} ${selectedOrder.user?.lastName || ''}`.trim() || 'Guest'
-                      )}
-                    </p>
+                    <p className="text-xs text-gray-500 mb-1">Name</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-white">
+                        {selectedOrder.isGuest ? (
+                          selectedOrder.guest?.name || 'Guest'
+                        ) : (
+                          `${selectedOrder.user?.name || ''} ${selectedOrder.user?.lastName || ''}`.trim() || 'N/A'
+                        )}
+                      </p>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          selectedOrder.isGuest
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                        }`}
+                      >
+                        {selectedOrder.isGuest ? '👤 Guest Order' : '✓ Registered User'}
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
