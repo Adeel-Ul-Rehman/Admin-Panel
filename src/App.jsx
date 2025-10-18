@@ -15,7 +15,7 @@ import HeroImages from "./pages/HeroImages";
 import { AppProvider, AppContext } from "./context/AppContext";
 
 // Define backendURL for API calls
-export const backendURL = "https://hadi-books-store-backend-5.onrender.com";
+export const backendURL = "https://api.hadibookstore.shop";
 
 const AppContent = () => {
   const { admin } = useContext(AppContext);
