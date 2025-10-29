@@ -4,6 +4,11 @@ import { AppContext } from "../context/AppContext";
 import { backendURL } from "../App";
 import assets from "../assets/assets";
 
+// Create axios instance with no caching
+const axiosInstance = axios.create({
+  adapter: ['xhr', 'http'],
+});
+
 const Orders = () => {
   const { admin } = useContext(AppContext);
   const [orders, setOrders] = useState([]);
@@ -22,11 +27,11 @@ const Orders = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.get(`${backendURL}/api/adminCtrl/all`, {
+      const response = await axiosInstance.get(`${backendURL}/api/adminCtrl/all`, {
         params: { 
           status, 
           paymentStatus,
-          _t: Date.now() // Cache buster to ensure fresh data from database
+          _t: new Date().getTime() // Cache buster with unique timestamp
         },
         headers: { 
           Authorization: `Bearer ${admin.token}`
@@ -34,13 +39,18 @@ const Orders = () => {
         withCredentials: true,
       });
       if (response.data.success) {
-        setOrders(response.data.orders);
-        setFilteredOrders(response.data.orders);
+        setOrders(response.data.orders || []);
+        setFilteredOrders(response.data.orders || []);
       } else {
         setError(response.data.message);
+        setOrders([]);
+        setFilteredOrders([]);
       }
     } catch (err) {
+      console.error('Fetch orders error:', err);
       setError(err.response?.data?.message || "Failed to fetch orders");
+      setOrders([]);
+      setFilteredOrders([]);
     } finally {
       setLoading(false);
     }
