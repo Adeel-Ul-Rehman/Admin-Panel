@@ -29,9 +29,7 @@ const Orders = () => {
           _t: Date.now() // Cache buster to ensure fresh data from database
         },
         headers: { 
-          Authorization: `Bearer ${admin.token}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          Authorization: `Bearer ${admin.token}`
         },
         withCredentials: true,
       });
