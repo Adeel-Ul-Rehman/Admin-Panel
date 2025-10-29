@@ -23,8 +23,16 @@ const Orders = () => {
     setError("");
     try {
       const response = await axios.get(`${backendURL}/api/adminCtrl/all`, {
-        params: { status, paymentStatus },
-        headers: { Authorization: `Bearer ${admin.token}` },
+        params: { 
+          status, 
+          paymentStatus,
+          _t: Date.now() // Cache buster to ensure fresh data from database
+        },
+        headers: { 
+          Authorization: `Bearer ${admin.token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
         withCredentials: true,
       });
       if (response.data.success) {
@@ -347,14 +355,24 @@ const Orders = () => {
               <h2 className="text-lg font-semibold text-white">
                 Search Orders
               </h2>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Order ID, Name, Email, or Mobile"
-                className="w-full sm:w-64 px-4 py-2 bg-gray-700/50 border border-gray-600/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all duration-200"
-                disabled={loading}
-              />
+              <div className="flex gap-2 items-center w-full sm:w-auto">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by Order ID, Name, Email, or Mobile"
+                  className="flex-1 sm:w-64 px-4 py-2 bg-gray-700/50 border border-gray-600/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-transparent transition-all duration-200"
+                  disabled={loading}
+                />
+                <button
+                  onClick={() => fetchOrders(statusFilter, paymentStatusFilter)}
+                  disabled={loading}
+                  className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 rounded-xl text-orange-300 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  title="Refresh orders from database"
+                >
+                  {loading ? "..." : "🔄 Refresh"}
+                </button>
+              </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <h4 className="text-lg font-semibold text-white">
