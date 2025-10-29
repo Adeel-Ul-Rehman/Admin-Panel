@@ -14,7 +14,7 @@ import ProductDetails from "./pages/ProductDetails";
 import HeroImages from "./pages/HeroImages";
 import { AppProvider, AppContext } from "./context/AppContext";
 
-// Define backendURL for API calls
+// Define backendURL for API calls - Using direct IP to bypass Cloudflare cache issue
 export const backendURL = "https://api.hadibookstore.shop";
 
 const AppContent = () => {
